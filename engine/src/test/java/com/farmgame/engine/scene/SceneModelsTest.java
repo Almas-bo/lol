@@ -8,6 +8,7 @@ import com.jme3.scene.Node;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -40,7 +41,7 @@ class SceneModelsTest {
 
     @Test
     void environmentRobotAndSkyAreBuilt() {
-        Node env = new EnvironmentFactory(materials, coords).create();
+        Node env = new EnvironmentFactory(materials, new ModelLibrary(assetManager), coords).create();
         assertTrue(env.getQuantity() > 5);
         assertTrue(new RobotModel(materials).node().getQuantity() > 0);
         assertNotNull(SkyDome.create(materials));
@@ -55,5 +56,27 @@ class SceneModelsTest {
         factory.setGrowth(crop, 1.0, 0f);
         assertTrue(factory.createAxisLabels().getQuantity() == coords.width() + coords.height());
         assertNotNull(factory.createGrid());
+    }
+
+    @Test
+    void downloadedModelsLoadWithConvertedMaterialsAndAnimations() throws Exception {
+        ModelLibrary library = new ModelLibrary(assetManager);
+        for (var field : ModelLibrary.class.getFields()) {
+            if (field.getType() == String.class) {
+                String path = (String) field.get(null);
+                Node model = library.load(path, 2f);
+                model.updateGeometricState();
+                var box = (com.jme3.bounding.BoundingBox) model.getWorldBound();
+                assertEquals(2f, box.getYExtent() * 2f, 0.05f, path + " должна быть высотой 2");
+                assertEquals(0f, box.getCenter().y - box.getYExtent(), 0.05f, path + " должна стоять на земле");
+                model.depthFirstTraversal(s -> {
+                    if (s instanceof com.jme3.scene.Geometry g) {
+                        assertFalse(g.getMaterial().getMaterialDef().getAssetName().contains("PBR"), path);
+                    }
+                });
+            }
+        }
+        assertNotNull(ModelLibrary.animations(library.load(ModelLibrary.FOX, 1f)).getAnimClip("Walk"));
+        assertNotNull(ModelLibrary.animations(library.load(ModelLibrary.FARMER, 1f)).getAnimClip("jump"));
     }
 }

@@ -3,20 +3,21 @@ package com.farmgame.engine.scene;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
+import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.shape.Box;
-import com.jme3.scene.shape.Cylinder;
 import com.jme3.scene.shape.Sphere;
+import jme3tools.optimize.GeometryBatchFactory;
 
 import java.util.Random;
 
 /**
- * Декорации вокруг поля: луг, холмы, забор, деревья, амбар, пруд и камни.
- * Всё собрано из примитивов; расстановка случайная, но с фиксированным seed —
- * сцена одинакова при каждом запуске.
+ * Декорации вокруг поля: луг, холмы, забор, деревья, амбар, пруд, камни, машины.
+ * Часть собрана из примитивов, часть — готовые модели ({@link ModelLibrary}).
+ * Расстановка случайная, но с фиксированным seed — сцена одинакова при каждом запуске.
  */
 public final class EnvironmentFactory {
 
@@ -37,12 +38,19 @@ public final class EnvironmentFactory {
             new ColorRGBA(0.32f, 0.55f, 0.20f, 1f),
     };
 
+    private static final ColorRGBA[] FLOWERS = {
+            new ColorRGBA(1f, 0.95f, 0.95f, 1f), new ColorRGBA(1f, 0.85f, 0.2f, 1f),
+            new ColorRGBA(0.95f, 0.45f, 0.6f, 1f), new ColorRGBA(0.65f, 0.55f, 1f, 1f),
+    };
+
     private final Materials materials;
+    private final ModelLibrary models;
     private final FarmCoordinates coords;
     private final Random random = new Random(42);
 
-    public EnvironmentFactory(Materials materials, FarmCoordinates coords) {
+    public EnvironmentFactory(Materials materials, ModelLibrary models, FarmCoordinates coords) {
         this.materials = materials;
+        this.models = models;
         this.coords = coords;
     }
 
@@ -55,7 +63,9 @@ public final class EnvironmentFactory {
         env.attachChild(createBarn());
         env.attachChild(createPond());
         env.attachChild(createTrees());
+        env.attachChild(createForestLine());
         env.attachChild(createRocks());
+        env.attachChild(createVehicles());
         return env;
     }
 
@@ -65,7 +75,10 @@ public final class EnvironmentFactory {
         Node meadow = new Node("meadow");
         Vector3f c = coords.center();
 
-        Geometry grass = Shapes.geometry("grass", new Box(220f, 0.05f, 220f), materials.lit(GRASS),
+        Box grassMesh = new Box(220f, 0.05f, 220f);
+        grassMesh.scaleTextureCoordinates(new Vector2f(70f, 70f)); // одна плитка текстуры ≈ 6 единиц
+        Geometry grass = Shapes.geometry("grass", grassMesh,
+                materials.textured("grass", ProceduralTextures.grass(256), ColorRGBA.White, 0.03f, 4f),
                 c.add(0, -0.1f, 0));
         grass.setShadowMode(RenderQueue.ShadowMode.Receive);
         meadow.attachChild(grass);
@@ -73,7 +86,10 @@ public final class EnvironmentFactory {
         // Слегка другой оттенок под самим полем, чтобы оно читалось как обработанный участок.
         float halfX = coords.width() * FarmCoordinates.CELL_SIZE / 2f + 0.6f;
         float halfZ = coords.height() * FarmCoordinates.CELL_SIZE / 2f + 0.6f;
-        Geometry field = Shapes.geometry("field-bed", new Box(halfX, 0.05f, halfZ), materials.lit(FIELD_EDGE),
+        Box fieldMesh = new Box(halfX, 0.05f, halfZ);
+        fieldMesh.scaleTextureCoordinates(new Vector2f(halfX / 2f, halfZ / 2f));
+        Geometry field = Shapes.geometry("field-bed", fieldMesh,
+                materials.textured("field", ProceduralTextures.grass(256), FIELD_EDGE.mult(1.6f), 0.03f, 4f),
                 c.add(0, -0.06f, 0));
         field.setShadowMode(RenderQueue.ShadowMode.Receive);
         meadow.attachChild(field);
@@ -227,7 +243,7 @@ public final class EnvironmentFactory {
         Node trees = new Node("trees");
         Vector3f c = coords.center();
         int placed = 0;
-        while (placed < 26) {
+        while (placed < 34) {
             float angle = random.nextFloat() * FastMath.TWO_PI;
             float distance = 17f + random.nextFloat() * 32f;
             Vector3f p = c.add(FastMath.cos(angle) * distance, 0, FastMath.sin(angle) * distance);
@@ -264,19 +280,47 @@ public final class EnvironmentFactory {
         return tree;
     }
 
+    /** Ель — готовая модель Kenney. */
     private Node pine(int index, Vector3f position) {
-        Node tree = new Node("pine-" + index);
-        float scale = 0.9f + random.nextFloat() * 0.7f;
-        tree.attachChild(Shapes.column("trunk", 0.22f, 0.18f, 1.2f, materials.lit(WOOD), Vector3f.ZERO));
-        ColorRGBA needles = FOLIAGE[0].mult(0.85f);
-        for (int tier = 0; tier < 3; tier++) {
-            float radius = 1.5f - tier * 0.35f;
-            tree.attachChild(Shapes.column("pine-tier", radius, 0.05f, 1.8f, materials.lit(needles),
-                    new Vector3f(0, 1.0f + tier * 1.0f, 0)));
-        }
+        Node tree = models.load(ModelLibrary.PINE, 4.2f + random.nextFloat() * 2.8f);
+        tree.setName("pine-" + index);
         tree.setLocalTranslation(position);
-        tree.setLocalScale(scale);
+        tree.setLocalRotation(Shapes.yaw(random.nextFloat() * FastMath.TWO_PI));
         return tree;
+    }
+
+    /** Густой еловый лес на горизонте — задаёт глубину сцены. Объединяется в несколько геометрий. */
+    private Node createForestLine() {
+        Node forest = new Node("forest-line");
+        Vector3f c = coords.center();
+        for (int i = 0; i < 90; i++) {
+            float angle = random.nextFloat() * FastMath.TWO_PI;
+            float distance = 48f + random.nextFloat() * 22f;
+            forest.attachChild(pine(1000 + i, c.add(FastMath.cos(angle) * distance, 0, FastMath.sin(angle) * distance)));
+        }
+        GeometryBatchFactory.optimize(forest);
+        return forest;
+    }
+
+    /** Пикапы у амбара и флажок у ворот — готовые модели Kenney. */
+    private Node createVehicles() {
+        Node vehicles = new Node("vehicles");
+        float z = coords.center().z;
+        Node green = models.load(ModelLibrary.TRUCK_GREEN, 1.5f);
+        green.setLocalTranslation(barnX() + 5.5f, 0, z + 6.5f);
+        green.setLocalRotation(Shapes.yaw(-0.5f));
+        vehicles.attachChild(green);
+        Node red = models.load(ModelLibrary.TRUCK_RED, 1.45f);
+        red.setLocalTranslation(barnX() - 1.5f, 0, z + 8.5f);
+        red.setLocalRotation(Shapes.yaw(2.3f));
+        vehicles.attachChild(red);
+        for (int side : new int[]{-1, 1}) {
+            Node flag = models.load(ModelLibrary.FLAG, 2.2f);
+            flag.setLocalTranslation(-FarmCoordinates.CELL_SIZE - 0.3f, 0, z + side * FarmCoordinates.CELL_SIZE * 1.1f);
+            flag.setLocalRotation(Shapes.yaw(FastMath.HALF_PI));
+            vehicles.attachChild(flag);
+        }
+        return vehicles;
     }
 
     private Node createRocks() {
@@ -295,16 +339,35 @@ public final class EnvironmentFactory {
             rock.setLocalRotation(Shapes.yaw(random.nextFloat() * FastMath.TWO_PI));
             rocks.attachChild(rock);
         }
-        // Кустики травы.
-        Cylinder tuft = new Cylinder(2, 6, 0.25f, 0.02f, 0.5f, true, false);
-        for (int i = 0; i < 60; i++) {
+        // Кустики травы (модели Kenney) и полевые цветы.
+        Node meadowDetails = new Node("meadow-details");
+        for (int i = 0; i < 160; i++) {
             float angle = random.nextFloat() * FastMath.TWO_PI;
-            float distance = 11f + random.nextFloat() * 30f;
-            Vector3f p = c.add(FastMath.cos(angle) * distance, 0.25f, FastMath.sin(angle) * distance);
-            Geometry g = Shapes.geometry("tuft", tuft, materials.lit(GRASS_DARK), p);
-            g.setLocalRotation(Shapes.UPRIGHT);
-            rocks.attachChild(g);
+            float distance = 11.5f + random.nextFloat() * 34f;
+            Vector3f p = c.add(FastMath.cos(angle) * distance, -0.05f, FastMath.sin(angle) * distance);
+            Node tuft = models.load(random.nextBoolean() ? ModelLibrary.GRASS : ModelLibrary.GRASS_SMALL,
+                    0.35f + random.nextFloat() * 0.45f);
+            tuft.setLocalTranslation(p);
+            tuft.setLocalRotation(Shapes.yaw(random.nextFloat() * FastMath.TWO_PI));
+            meadowDetails.attachChild(tuft);
         }
+        Sphere petal = new Sphere(6, 8, 0.09f);
+        for (int i = 0; i < 140; i++) {
+            float angle = random.nextFloat() * FastMath.TWO_PI;
+            float distance = 11.5f + random.nextFloat() * 30f;
+            Vector3f p = c.add(FastMath.cos(angle) * distance, 0, FastMath.sin(angle) * distance);
+            if (nearBarnOrPond(p)) {
+                continue;
+            }
+            float stem = 0.2f + random.nextFloat() * 0.2f;
+            meadowDetails.attachChild(Shapes.column("stem", 0.012f, 0.012f, stem, materials.lit(GRASS_DARK), p));
+            meadowDetails.attachChild(Shapes.geometry("flower", petal,
+                    materials.lit(FLOWERS[random.nextInt(FLOWERS.length)]), p.add(0, stem, 0)));
+        }
+        // Сотни мелких объектов объединяются в несколько геометрий — так быстрее рисовать.
+        GeometryBatchFactory.optimize(meadowDetails);
+        meadowDetails.setShadowMode(RenderQueue.ShadowMode.Receive);
+        rocks.attachChild(meadowDetails);
         return rocks;
     }
 }

@@ -1,6 +1,7 @@
 package com.farmgame.engine.state;
 
 import com.farmgame.engine.scene.Materials;
+import com.farmgame.engine.scene.ModelLibrary;
 import com.jme3.app.Application;
 import com.jme3.app.SimpleApplication;
 import com.jme3.app.state.BaseAppState;
@@ -12,6 +13,7 @@ import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Mesh;
 import com.jme3.scene.Node;
+import com.jme3.scene.Spatial;
 import com.jme3.scene.shape.Box;
 import com.jme3.scene.shape.Sphere;
 
@@ -32,18 +34,20 @@ public class EffectsState extends BaseAppState {
 
     private final Node effectsNode = new Node("effects");
     private final List<Particle> particles = new ArrayList<>();
+    private final List<Particle> coins = new ArrayList<>();
+    private ModelLibrary models;
     private final Random random = new Random();
     private final Mesh droplet = new Sphere(6, 8, 0.05f);
     private final Mesh chunk = new Box(0.07f, 0.07f, 0.07f);
     private Materials materials;
 
     private static final class Particle {
-        final Geometry geometry;
+        final Spatial geometry;
         final Vector3f velocity;
         float life;
         final float maxLife;
 
-        Particle(Geometry geometry, Vector3f velocity, float life) {
+        Particle(Spatial geometry, Vector3f velocity, float life) {
             this.geometry = geometry;
             this.velocity = velocity;
             this.life = life;
@@ -54,6 +58,7 @@ public class EffectsState extends BaseAppState {
     @Override
     protected void initialize(Application app) {
         materials = new Materials(app.getAssetManager());
+        models = new ModelLibrary(app.getAssetManager());
         effectsNode.setShadowMode(RenderQueue.ShadowMode.Off);
     }
 
@@ -86,6 +91,13 @@ public class EffectsState extends BaseAppState {
         for (ColorRGBA c : colors) {
             burst(position.add(0, 1.2f, 0), materials.glowing(c), 22, 6f);
         }
+        // Золотые монеты (модель Kenney) взлетают и крутятся.
+        for (int i = 0; i < 10; i++) {
+            Node coin = models.load(ModelLibrary.COIN, 0.55f);
+            coin.setLocalTranslation(position.add(rand(0.4f), 1.2f, rand(0.4f)));
+            effectsNode.attachChild(coin);
+            coins.add(new Particle(coin, new Vector3f(rand(1.6f), 6f + random.nextFloat() * 2f, rand(1.6f)), 3f));
+        }
     }
 
     private void burst(Vector3f target, Material mat, int count, float power) {
@@ -111,6 +123,20 @@ public class EffectsState extends BaseAppState {
 
     @Override
     public void update(float tpf) {
+        Iterator<Particle> coinIt = coins.iterator();
+        while (coinIt.hasNext()) {
+            Particle c = coinIt.next();
+            c.life -= tpf;
+            if (c.life <= 0) {
+                c.geometry.removeFromParent();
+                coinIt.remove();
+                continue;
+            }
+            c.velocity.y -= GRAVITY * 0.35f * tpf;
+            c.geometry.move(c.velocity.mult(tpf));
+            c.geometry.rotate(0, tpf * 9f, 0);
+            c.geometry.setLocalScale(FastMath.clamp(c.life / c.maxLife * 2f, 0.05f, 1f));
+        }
         Iterator<Particle> it = particles.iterator();
         while (it.hasNext()) {
             Particle p = it.next();
@@ -135,6 +161,7 @@ public class EffectsState extends BaseAppState {
     protected void cleanup(Application app) {
         effectsNode.detachAllChildren();
         particles.clear();
+        coins.clear();
     }
 
     @Override

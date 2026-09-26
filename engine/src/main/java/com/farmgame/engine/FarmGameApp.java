@@ -6,10 +6,12 @@ import com.farmgame.engine.scene.EnvironmentFactory;
 import com.farmgame.engine.scene.FarmCoordinates;
 import com.farmgame.engine.scene.FarmSceneFactory;
 import com.farmgame.engine.scene.Materials;
+import com.farmgame.engine.scene.ModelLibrary;
 import com.farmgame.engine.scene.PostEffects;
 import com.farmgame.engine.scene.RobotModel;
 import com.farmgame.engine.scene.SceneLighting;
 import com.farmgame.engine.scene.SkyDome;
+import com.farmgame.engine.state.AmbientLifeState;
 import com.farmgame.engine.state.CodeEditorState;
 import com.farmgame.engine.state.EffectsState;
 import com.farmgame.engine.state.FarmRenderState;
@@ -79,7 +81,7 @@ public class FarmGameApp extends SimpleApplication {
 
         // Статическая часть сцены: небо, окружение, сетка, подписи координат.
         rootNode.attachChild(SkyDome.create(materials));
-        rootNode.attachChild(new EnvironmentFactory(materials, coords).create());
+        rootNode.attachChild(new EnvironmentFactory(materials, new ModelLibrary(assetManager), coords).create());
         FarmSceneFactory sceneFactory = new FarmSceneFactory(assetManager, materials, coords);
         Spatial grid = sceneFactory.createGrid();
         grid.setCullHint(Spatial.CullHint.Always); // по умолчанию выключена, клавиша G
@@ -104,6 +106,7 @@ public class FarmGameApp extends SimpleApplication {
                 new FarmRenderState(farm, sceneFactory, rootNode),
                 new RobotCommandState(farm, commandSink, robot, coords),
                 new EffectsState(),
+                new AmbientLifeState(coords, robot.node()),
                 camera);
 
         // Обучение: редактор кода, уроки, консоль и панель фермы.

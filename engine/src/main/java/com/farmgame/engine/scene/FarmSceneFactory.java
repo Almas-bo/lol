@@ -17,6 +17,7 @@ import com.jme3.scene.Spatial;
 import com.jme3.scene.control.BillboardControl;
 import com.jme3.scene.debug.Grid;
 import com.jme3.scene.shape.Box;
+import com.jme3.texture.Texture;
 
 /** Создаёт геометрию поля: грядки с бороздами, культуры, сетку и подписи координат. */
 public final class FarmSceneFactory {
@@ -42,10 +43,11 @@ public final class FarmSceneFactory {
         this.materials = materials;
         this.coords = coords;
         this.crops = new CropModelFactory(materials);
-        this.soilDry = materials.lit(SOIL_DRY);
-        this.soilWet = materials.lit(SOIL_WET, 0.6f, 40f); // мокрая почва блестит
-        this.ridgeDry = materials.lit(SOIL_DRY.mult(1.12f));
-        this.ridgeWet = materials.lit(SOIL_WET.mult(1.15f), 0.6f, 40f);
+        Texture soil = ProceduralTextures.soil(128);
+        this.soilDry = materials.textured("soil", soil, SOIL_DRY, 0.05f, 4f);
+        this.soilWet = materials.textured("soil", soil, SOIL_WET, 0.6f, 40f); // мокрая почва блестит
+        this.ridgeDry = materials.textured("soil", soil, SOIL_DRY.mult(1.12f), 0.05f, 4f);
+        this.ridgeWet = materials.textured("soil", soil, SOIL_WET.mult(1.15f), 0.6f, 40f);
     }
 
     /** Линии сетки по границам клеток (включаются/выключаются клавишей G). */

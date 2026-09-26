@@ -4,6 +4,7 @@ import com.jme3.asset.AssetManager;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
 import com.jme3.math.ColorRGBA;
+import com.jme3.texture.Texture;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -53,6 +54,22 @@ public final class Materials {
             mat.setBoolean("UseMaterialColors", true);
             mat.setColor("Diffuse", linear(color));
             mat.setColor("Ambient", linear(color));
+            mat.setColor("Specular", ColorRGBA.White.mult(specular));
+            mat.setFloat("Shininess", shininess);
+            return mat;
+        });
+    }
+
+    /**
+     * Освещаемый материал с текстурой; {@code tint} умножается на цвет текстуры.
+     */
+    public Material textured(String key, Texture texture, ColorRGBA tint, float specular, float shininess) {
+        return cache.computeIfAbsent("tex:" + key + ":" + tint + ":" + specular, k -> {
+            Material mat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+            mat.setTexture("DiffuseMap", texture);
+            mat.setBoolean("UseMaterialColors", true);
+            mat.setColor("Diffuse", linear(tint));
+            mat.setColor("Ambient", linear(tint));
             mat.setColor("Specular", ColorRGBA.White.mult(specular));
             mat.setFloat("Shininess", shininess);
             return mat;

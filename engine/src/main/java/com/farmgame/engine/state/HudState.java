@@ -125,8 +125,13 @@ public class HudState extends BaseAppState implements ActionListener {
         if (pressed && TOGGLE.equals(name)) {
             // Прячем весь интерфейс (включая урок и редактор), чтобы полюбоваться фермой.
             Node gui = ((SimpleApplication) getApplication()).getGuiNode();
-            gui.setCullHint(gui.getCullHint() == Node.CullHint.Always
-                    ? Node.CullHint.Inherit : Node.CullHint.Always);
+            boolean hide = gui.getCullHint() != Node.CullHint.Always;
+            gui.setCullHint(hide ? Node.CullHint.Always : Node.CullHint.Inherit);
+            // Без панелей ферма снова по центру экрана.
+            OrbitCameraState camera = getState(OrbitCameraState.class);
+            if (camera != null) {
+                camera.setViewCenter(hide ? 0f : layout.viewCenterNdc());
+            }
         }
     }
 

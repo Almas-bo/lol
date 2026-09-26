@@ -271,6 +271,10 @@ public class LessonState extends BaseAppState implements CodeEditorState.Actions
                 if (effects != null) {
                     effects.celebrate(getState(RobotCommandState.class).robotWorldPosition());
                 }
+                AmbientLifeState life = getState(AmbientLifeState.class);
+                if (life != null) {
+                    life.cheer();
+                }
             }
         } else {
             console.print("✗ " + goal.message());

@@ -10,6 +10,7 @@ dependencies {
     implementation(libs.jme.core)
     implementation(libs.jme.desktop)
     implementation(libs.jme.effects) // пост-обработка: SSAO, FXAA, bloom
+    implementation(libs.jme.plugins) // загрузчик 3D-моделей glTF/GLB
     // LWJGL3-бэкенд + нативные библиотеки; напрямую используется для буфера обмена (GLFW).
     implementation(libs.jme.lwjgl3)
 }
