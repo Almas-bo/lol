@@ -2,19 +2,30 @@ package com.farmgame.engine;
 
 import com.farmgame.core.farm.Farm;
 import com.farmgame.engine.program.ProgramLauncher;
+import com.farmgame.engine.scene.EnvironmentFactory;
 import com.farmgame.engine.scene.FarmCoordinates;
 import com.farmgame.engine.scene.FarmSceneFactory;
-import com.farmgame.engine.scene.RobotModelFactory;
+import com.farmgame.engine.scene.Materials;
+import com.farmgame.engine.scene.PostEffects;
+import com.farmgame.engine.scene.RobotModel;
 import com.farmgame.engine.scene.SceneLighting;
+import com.farmgame.engine.scene.SkyDome;
+import com.farmgame.engine.state.EffectsState;
 import com.farmgame.engine.state.FarmRenderState;
 import com.farmgame.engine.state.HudState;
+import com.farmgame.engine.state.OrbitCameraState;
 import com.farmgame.engine.state.RobotCommandState;
 import com.farmgame.engine.ui.GameConsole;
 import com.farmgame.sandbox.command.QueuedCommandSink;
+import com.jme3.app.DebugKeysAppState;
 import com.jme3.app.SimpleApplication;
-import com.jme3.math.ColorRGBA;
-import com.jme3.math.Vector3f;
-import com.jme3.scene.Node;
+import com.jme3.app.StatsAppState;
+import com.jme3.input.KeyInput;
+import com.jme3.input.controls.ActionListener;
+import com.jme3.input.controls.KeyTrigger;
+import com.jme3.light.DirectionalLight;
+import com.jme3.renderer.queue.RenderQueue;
+import com.jme3.scene.Spatial;
 
 /**
  * Главное приложение jMonkeyEngine.
@@ -32,47 +43,66 @@ public class FarmGameApp extends SimpleApplication {
     public static final int FARM_WIDTH = 8;
     public static final int FARM_HEIGHT = 6;
 
+    private static final String TOGGLE_GRID = "Toggle_Grid";
+
+    private final GraphicsQuality quality;
     private final Farm farm = new Farm(FARM_WIDTH, FARM_HEIGHT);
     private final QueuedCommandSink commandSink = new QueuedCommandSink();
     private final GameConsole console = new GameConsole(8);
 
+    public FarmGameApp() {
+        this(GraphicsQuality.HIGH);
+    }
+
+    public FarmGameApp(GraphicsQuality quality) {
+        // Свою камеру даёт OrbitCameraState, поэтому стандартная FlyCam не подключается.
+        super(new StatsAppState(), new DebugKeysAppState());
+        this.quality = quality;
+    }
+
     @Override
     public void simpleInitApp() {
         setDisplayStatView(false); // отладочная статистика jME; FPS оставляем
-        viewPort.setBackgroundColor(new ColorRGBA(0.53f, 0.78f, 0.95f, 1f)); // небо
-
+        Materials materials = new Materials(assetManager);
         FarmCoordinates coords = new FarmCoordinates(farm.width(), farm.height());
 
-        // Статическая часть сцены: земля и сетка.
-        FarmSceneFactory sceneFactory = new FarmSceneFactory(assetManager, coords);
-        rootNode.attachChild(sceneFactory.createGround());
-        rootNode.attachChild(sceneFactory.createGrid());
+        // Статическая часть сцены: небо, окружение, сетка, подписи координат.
+        rootNode.attachChild(SkyDome.create(materials));
+        rootNode.attachChild(new EnvironmentFactory(materials, coords).create());
+        FarmSceneFactory sceneFactory = new FarmSceneFactory(assetManager, materials, coords);
+        Spatial grid = sceneFactory.createGrid();
+        grid.setCullHint(Spatial.CullHint.Always); // по умолчанию выключена, клавиша G
+        rootNode.attachChild(grid);
+        rootNode.attachChild(sceneFactory.createAxisLabels());
 
         // Робот-трактор из примитивов.
-        Node robot = new RobotModelFactory(assetManager).create();
-        robot.setLocalTranslation(coords.toWorld(farm.robotPosition()));
-        rootNode.attachChild(robot);
+        RobotModel robot = new RobotModel(materials);
+        robot.node().setLocalTranslation(coords.toWorld(farm.robotPosition()));
+        rootNode.attachChild(robot.node());
 
-        SceneLighting.apply(rootNode);
-        setupCamera(coords);
+        // Свет, тени и пост-эффекты. Небо тени не отбрасывает (ShadowMode задан в SkyDome).
+        DirectionalLight sun = SceneLighting.apply(rootNode);
+        rootNode.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
+        PostEffects.apply(assetManager, viewPort, sun, quality);
 
-        // Динамика: грядки, выполнение команд робота, интерфейс.
+        // Динамика: грядки, выполнение команд робота, эффекты, камера, интерфейс.
         stateManager.attachAll(
                 new FarmRenderState(farm, sceneFactory, rootNode),
                 new RobotCommandState(farm, commandSink, robot, coords),
+                new EffectsState(),
+                new OrbitCameraState(coords.center(), robot.node()),
                 new HudState(farm, console));
 
+        inputManager.addMapping(TOGGLE_GRID, new KeyTrigger(KeyInput.KEY_G));
+        inputManager.addListener((ActionListener) (name, pressed, tpf) -> {
+            if (pressed) {
+                grid.setCullHint(grid.getCullHint() == Spatial.CullHint.Always
+                        ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
+            }
+        }, TOGGLE_GRID);
+
+        console.print("Качество графики: " + quality.name().toLowerCase());
         new ProgramLauncher(farm, commandSink, console).launchDemo();
-    }
-
-    private void setupCamera(FarmCoordinates coords) {
-        Vector3f center = coords.center();
-        cam.setLocation(center.add(0, 14, 16));
-        cam.lookAt(center, Vector3f.UNIT_Y);
-
-        // Свободная камера: WASD + зажатая левая кнопка мыши для поворота.
-        flyCam.setMoveSpeed(12f);
-        flyCam.setDragToRotate(true);
     }
 
     public Farm farm() {

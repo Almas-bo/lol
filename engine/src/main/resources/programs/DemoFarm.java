@@ -12,14 +12,14 @@ import com.farmgame.sandbox.api.RobotApi;
  */
 public class DemoFarm implements FarmProgram {
 
-    private static final CropType[] ROTATION = {CropType.CARROT, CropType.WHEAT, CropType.CORN};
+    private static final CropType[] ROTATION = {CropType.CARROT, CropType.WHEAT, CropType.CORN, CropType.PUMPKIN};
 
     @Override
     public void run(RobotApi robot, FarmApi farm) {
         int row = farm.getHeight() / 2;
 
         for (int season = 1; season <= 3; season++) {
-            robot.say("Season " + season + ": planting");
+            robot.say("Сезон " + season + ": сажаю ряд " + row);
             for (int x = 0; x < farm.getWidth(); x++) {
                 robot.moveTo(x, row);
                 Crop crop = Crop.builder()
@@ -30,7 +30,7 @@ public class DemoFarm implements FarmProgram {
                 robot.water();
             }
 
-            robot.say("Waiting for the harvest...");
+            robot.say("Жду урожай...");
             while (!allRipe(farm, row)) {
                 robot.pause(1.0);
             }
@@ -40,10 +40,10 @@ public class DemoFarm implements FarmProgram {
                 robot.moveTo(x, row);
                 total += robot.harvest();
             }
-            robot.say("Season " + season + " harvest: " + total);
+            robot.say("Сезон " + season + ": собрано " + total);
         }
         robot.moveTo(0, 0);
-        robot.say("Done! Corn in barn: " + farm.getHarvested(CropType.CORN));
+        robot.say("Готово! Кукурузы на складе: " + farm.getHarvested(CropType.CORN));
     }
 
     private boolean allRipe(FarmApi farm, int row) {

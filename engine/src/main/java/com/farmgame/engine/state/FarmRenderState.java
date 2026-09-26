@@ -1,12 +1,12 @@
 package com.farmgame.engine.state;
 
 import com.farmgame.core.GridPosition;
+import com.farmgame.core.crop.CropType;
 import com.farmgame.core.farm.Farm;
 import com.farmgame.core.farm.PlotState;
 import com.farmgame.engine.scene.FarmSceneFactory;
 import com.jme3.app.Application;
 import com.jme3.app.state.BaseAppState;
-import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 
 /**
@@ -22,8 +22,10 @@ public class FarmRenderState extends BaseAppState {
     private final Node parent;
     private final Node plotsNode = new Node("plots");
 
-    private Geometry[][] plotGeometries;
-    private Geometry[][] cropGeometries;
+    private Node[][] plotNodes;
+    private Node[][] cropNodes;
+    private CropType[][] cropTypes;
+    private float time;
 
     public FarmRenderState(Farm farm, FarmSceneFactory factory, Node parent) {
         this.farm = farm;
@@ -33,12 +35,13 @@ public class FarmRenderState extends BaseAppState {
 
     @Override
     protected void initialize(Application app) {
-        plotGeometries = new Geometry[farm.width()][farm.height()];
-        cropGeometries = new Geometry[farm.width()][farm.height()];
+        plotNodes = new Node[farm.width()][farm.height()];
+        cropNodes = new Node[farm.width()][farm.height()];
+        cropTypes = new CropType[farm.width()][farm.height()];
         for (int x = 0; x < farm.width(); x++) {
             for (int y = 0; y < farm.height(); y++) {
-                Geometry plot = factory.createPlot(new GridPosition(x, y));
-                plotGeometries[x][y] = plot;
+                Node plot = factory.createPlot(new GridPosition(x, y));
+                plotNodes[x][y] = plot;
                 plotsNode.attachChild(plot);
             }
         }
@@ -61,6 +64,7 @@ public class FarmRenderState extends BaseAppState {
 
     @Override
     public void update(float tpf) {
+        time += tpf;
         farm.tick(tpf);
         for (int x = 0; x < farm.width(); x++) {
             for (int y = 0; y < farm.height(); y++) {
@@ -72,23 +76,24 @@ public class FarmRenderState extends BaseAppState {
     private void syncPlot(PlotState state) {
         int x = state.position().x();
         int y = state.position().y();
-        factory.setWatered(plotGeometries[x][y], state.watered());
+        factory.setWatered(plotNodes[x][y], state.watered());
 
-        Geometry crop = cropGeometries[x][y];
-        if (state.isEmpty()) {
-            if (crop != null) {
-                crop.removeFromParent();
-                cropGeometries[x][y] = null;
-            }
+        Node crop = cropNodes[x][y];
+        CropType type = state.isEmpty() ? null : state.crop().type();
+        if (crop != null && type != cropTypes[x][y]) {
+            crop.removeFromParent();
+            crop = null;
+            cropNodes[x][y] = null;
+        }
+        if (type == null) {
             return;
         }
         if (crop == null) {
-            crop = factory.createCrop(state.position(), state.crop().type());
-            cropGeometries[x][y] = crop;
+            crop = factory.createCrop(state.position(), type);
+            cropNodes[x][y] = crop;
+            cropTypes[x][y] = type;
             plotsNode.attachChild(crop);
         }
-        // Семечко маленькое, созревшая культура — в полный размер и чуть приподнята.
-        float scale = 0.15f + 0.85f * (float) state.growthProgress();
-        factory.setGrowth(crop, scale, state.isRipe() ? 1.3f : 1f);
+        factory.setGrowth(crop, state.growthProgress(), time);
     }
 }

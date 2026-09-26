@@ -5,6 +5,7 @@ junit = "5.13.4"
 [libraries]
 jme-core = { module = "org.jmonkeyengine:jme3-core", version.ref = "jme" }
 jme-desktop = { module = "org.jmonkeyengine:jme3-desktop", version.ref = "jme" }
+jme-effects = { module = "org.jmonkeyengine:jme3-effects", version.ref = "jme" }
 jme-lwjgl3 = { module = "org.jmonkeyengine:jme3-lwjgl3", version.ref = "jme" }
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
