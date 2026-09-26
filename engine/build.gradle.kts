@@ -10,7 +10,8 @@ dependencies {
     implementation(libs.jme.core)
     implementation(libs.jme.desktop)
     implementation(libs.jme.effects) // пост-обработка: SSAO, FXAA, bloom
-    runtimeOnly(libs.jme.lwjgl3) // LWJGL3-бэкенд + нативные библиотеки для Win/Linux/macOS
+    // LWJGL3-бэкенд + нативные библиотеки; напрямую используется для буфера обмена (GLFW).
+    implementation(libs.jme.lwjgl3)
 }
 
 application {

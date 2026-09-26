@@ -48,6 +48,7 @@ public class OrbitCameraState extends BaseAppState implements ActionListener, An
     private boolean rotating;
     private boolean following;
     private Camera cam;
+    private float viewCenterNdc;
 
     /**
      * @param homeTarget   начальная точка обзора (центр фермы)
@@ -60,9 +61,9 @@ public class OrbitCameraState extends BaseAppState implements ActionListener, An
 
     private void reset() {
         target.set(homeTarget);
-        yaw = -0.35f;
-        pitch = 0.72f;
-        distance = 25f;
+        yaw = -0.3f;
+        pitch = 0.8f;
+        distance = 30f;
         following = false;
     }
 
@@ -74,7 +75,28 @@ public class OrbitCameraState extends BaseAppState implements ActionListener, An
         smoothYaw = yaw;
         smoothPitch = pitch;
         smoothDistance = distance;
-        cam.setFrustumPerspective(50f, (float) cam.getWidth() / cam.getHeight(), 0.3f, 1200f);
+        applyFrustum();
+    }
+
+    /**
+     * Смещает центр изображения по горизонтали (в NDC, -1..1), чтобы ферма оказывалась
+     * в свободной от панелей части экрана. Используется «асимметричная» пирамида обзора.
+     */
+    public void setViewCenter(float ndcX) {
+        viewCenterNdc = ndcX;
+        if (cam != null) {
+            applyFrustum();
+        }
+    }
+
+    private void applyFrustum() {
+        float near = 0.3f;
+        float far = 1200f;
+        float top = near * FastMath.tan(50f * FastMath.DEG_TO_RAD / 2f);
+        float right = top * cam.getWidth() / cam.getHeight();
+        float shift = -viewCenterNdc * right;
+        cam.setFrustum(near, far, -right + shift, right + shift, top, -top);
+        cam.setParallelProjection(false);
     }
 
     @Override

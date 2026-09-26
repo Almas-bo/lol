@@ -19,6 +19,11 @@ public class Inventory {
         harvested.merge(type, amount, Integer::sum);
     }
 
+    /** Очищает склад. */
+    public void clear() {
+        harvested.clear();
+    }
+
     /** Сколько единиц данной культуры на складе. */
     public int count(CropType type) {
         return harvested.getOrDefault(type, 0);

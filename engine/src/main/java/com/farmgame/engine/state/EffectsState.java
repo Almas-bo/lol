@@ -78,6 +78,16 @@ public class EffectsState extends BaseAppState {
         burst(target, materials.glowing(color.mult(0.9f)), 26, 4f);
     }
 
+    /** «Салют» над роботом, когда задание урока выполнено. */
+    public void celebrate(Vector3f position) {
+        ColorRGBA[] colors = {
+                new ColorRGBA(1f, 0.85f, 0.2f, 1f), new ColorRGBA(0.4f, 0.9f, 0.4f, 1f),
+                new ColorRGBA(0.4f, 0.7f, 1f, 1f), new ColorRGBA(1f, 0.45f, 0.4f, 1f)};
+        for (ColorRGBA c : colors) {
+            burst(position.add(0, 1.2f, 0), materials.glowing(c), 22, 6f);
+        }
+    }
+
     private void burst(Vector3f target, Material mat, int count, float power) {
         for (int i = 0; i < count; i++) {
             Vector3f velocity = new Vector3f(rand(1.5f), power * (0.6f + random.nextFloat() * 0.5f), rand(1.5f));

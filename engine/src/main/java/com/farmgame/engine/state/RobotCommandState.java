@@ -95,6 +95,34 @@ public class RobotCommandState extends BaseAppState {
         }
     }
 
+    /**
+     * Прерывает анимацию текущей команды (программа остановлена или перезапущена).
+     * Команда завершается «впустую» — поток игрока её уже не ждёт.
+     */
+    public void cancelCurrent() {
+        if (current != null) {
+            current.complete(0);
+            current = null;
+        }
+        waypoints.clear();
+        robot.setNod(0f);
+        if (targetMarker != null) {
+            targetMarker.setCullHint(Spatial.CullHint.Always);
+        }
+    }
+
+    /** Мгновенно ставит модель робота туда, где он находится в логике фермы. */
+    public void snapToFarm() {
+        robot.node().setLocalTranslation(coords.toWorld(farm.robotPosition()));
+        heading = 0f;
+        robot.node().setLocalRotation(new Quaternion());
+    }
+
+    /** Положение модели робота в мире (для эффектов). */
+    public Vector3f robotWorldPosition() {
+        return robot.node().getWorldTranslation().clone();
+    }
+
     /** Берёт следующую команду и применяет её к логике. */
     private boolean startNext() {
         PendingCommand next = sink.poll();

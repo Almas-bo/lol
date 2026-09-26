@@ -14,11 +14,23 @@ public final class HudStyle {
     public static final Font MONO = new Font(Font.MONOSPACED, Font.PLAIN, 13);
     public static final Font SMALL = new Font(Font.SANS_SERIF, Font.PLAIN, 13);
     public static final Font KEY = new Font(Font.SANS_SERIF, Font.BOLD, 13);
+    public static final Font BUTTON = new Font(Font.SANS_SERIF, Font.BOLD, 13);
+    public static final Font HEADING = new Font(Font.SANS_SERIF, Font.BOLD, 20);
+    public static final Font CODE = new Font(Font.MONOSPACED, Font.PLAIN, 14);
+    public static final Font CODE_SMALL = new Font(Font.MONOSPACED, Font.PLAIN, 13);
 
     public static final Color TEXT_COLOR = new Color(0xF2, 0xF0, 0xE6);
     public static final Color MUTED = new Color(0xB8, 0xC4, 0xB0);
     public static final Color ACCENT = new Color(0xFF, 0xC8, 0x3D);
     public static final Color ERROR = new Color(0xFF, 0x8A, 0x7A);
+    public static final Color SUCCESS = new Color(0x8E, 0xE0, 0x7A);
+    public static final Color INFO = new Color(0x8F, 0xC8, 0xFF);
+
+    public static final Color BUTTON_GREEN = new Color(0x3C, 0x9A, 0x4A);
+    public static final Color BUTTON_RED = new Color(0xB8, 0x45, 0x3A);
+    public static final Color BUTTON_GRAY = new Color(0x55, 0x60, 0x5A);
+    public static final Color BUTTON_BLUE = new Color(0x3A, 0x6E, 0xB0);
+    public static final Color BUTTON_AMBER = new Color(0xB0, 0x82, 0x2A);
 
     private static final Color BACKGROUND = new Color(22, 30, 24, 190);
     private static final Color BORDER = new Color(255, 255, 255, 50);

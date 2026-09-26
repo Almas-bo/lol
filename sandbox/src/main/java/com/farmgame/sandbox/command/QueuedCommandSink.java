@@ -11,6 +11,9 @@ import java.util.concurrent.LinkedBlockingQueue;
  * <p>Поток игрока кладёт команду и блокируется. Игровой цикл забирает её через
  * {@link #poll()}, проигрывает анимацию и вызывает {@link PendingCommand#complete} —
  * только после этого код игрока продолжает выполнение.
+ *
+ * <p>Если программу игрока остановили (кнопка «Стоп», таймаут), ожидающая команда
+ * помечается отменённой и движок её пропускает.
  */
 public final class QueuedCommandSink implements CommandSink {
 
@@ -22,6 +25,10 @@ public final class QueuedCommandSink implements CommandSink {
         queue.put(pending);
         try {
             return pending.result.get();
+        } catch (InterruptedException e) {
+            pending.cancel();
+            queue.remove(pending);
+            throw e;
         } catch (ExecutionException e) {
             if (e.getCause() instanceof RuntimeException re) {
                 throw re;
@@ -30,9 +37,26 @@ public final class QueuedCommandSink implements CommandSink {
         }
     }
 
-    /** Забирает следующую команду без ожидания или возвращает {@code null}. Вызывается движком. */
+    /**
+     * Забирает следующую неотменённую команду без ожидания или возвращает {@code null}.
+     * Вызывается движком.
+     */
     public PendingCommand poll() {
-        return queue.poll();
+        PendingCommand next;
+        while ((next = queue.poll()) != null) {
+            if (!next.isCancelled()) {
+                return next;
+            }
+        }
+        return null;
+    }
+
+    /** Отменяет все ожидающие команды (например, перед новым запуском программы). */
+    public void clear() {
+        PendingCommand next;
+        while ((next = queue.poll()) != null) {
+            next.cancel();
+        }
     }
 
     /** Команда, ожидающая выполнения в игровом мире. */
@@ -57,6 +81,15 @@ public final class QueuedCommandSink implements CommandSink {
         /** Передаёт ошибку (например, нарушение правил) обратно в код игрока. */
         public void fail(RuntimeException error) {
             result.completeExceptionally(error);
+        }
+
+        /** Программа игрока больше не ждёт эту команду. */
+        public boolean isCancelled() {
+            return result.isCancelled();
+        }
+
+        private void cancel() {
+            result.cancel(false);
         }
     }
 }

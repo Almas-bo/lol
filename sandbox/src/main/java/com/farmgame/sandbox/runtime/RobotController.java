@@ -86,8 +86,12 @@ public final class RobotController implements RobotApi {
         }
     }
 
-    /** Программа игрока была остановлена (таймаут или кнопка «Стоп»). */
-    static final class ProgramStoppedException extends RuntimeException {
+    /**
+     * Программа игрока была остановлена (таймаут или кнопка «Стоп»).
+     * Наследуется от {@link Error}, чтобы {@code catch (Exception e)} в коде игрока
+     * случайно не «проглотил» остановку.
+     */
+    static final class ProgramStoppedException extends Error {
         ProgramStoppedException() {
             super("Программа остановлена");
         }

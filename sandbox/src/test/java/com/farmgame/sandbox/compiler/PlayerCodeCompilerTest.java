@@ -97,4 +97,18 @@ class PlayerCodeCompilerTest {
         assertTrue(!SandboxClassLoader.isAllowed("java.lang.reflect.Method"));
         assertTrue(!SandboxClassLoader.isAllowed("java.lang.System"));
     }
+
+    @Test
+    void compilerErrorsGetFriendlyHints() {
+        CompilationResult.Failure failure = assertInstanceOf(CompilationResult.Failure.class, compiler.compile("""
+                import com.farmgame.sandbox.api.*;
+                public class Oops implements FarmProgram {
+                    public void run(RobotApi robot, FarmApi farm) {
+                        robot.moveTo(1, 1)
+                    }
+                }
+                """));
+        String hint = CompilerHints.hintFor(failure.diagnostics().getFirst().message());
+        assertTrue(hint.contains("точка с запятой"), hint);
+    }
 }

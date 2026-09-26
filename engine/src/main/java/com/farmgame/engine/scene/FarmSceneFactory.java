@@ -68,11 +68,11 @@ public final class FarmSceneFactory {
         float cell = FarmCoordinates.CELL_SIZE;
         for (int x = 0; x < coords.width(); x++) {
             labels.attachChild(label(font, "x" + x, coords.toWorld(new GridPosition(x, coords.height() - 1))
-                    .add(0, 0.35f, cell * 0.85f), new ColorRGBA(1f, 0.92f, 0.35f, 1f)));
+                    .add(0, 1.3f, cell * 0.6f), new ColorRGBA(1f, 0.92f, 0.35f, 1f)));
         }
         for (int y = 0; y < coords.height(); y++) {
             labels.attachChild(label(font, "y" + y, coords.toWorld(new GridPosition(0, y))
-                    .add(-cell * 0.85f, 0.35f, 0), new ColorRGBA(0.55f, 0.85f, 1f, 1f)));
+                    .add(-cell * 0.6f, 1.3f, 0), new ColorRGBA(0.55f, 0.85f, 1f, 1f)));
         }
         return labels;
     }
@@ -136,7 +136,7 @@ public final class FarmSceneFactory {
      */
     public void setGrowth(Node crop, double progress, float time) {
         float p = (float) progress;
-        float scale = 0.12f + 0.88f * p;
+        float scale = 0.3f + 0.7f * p; // даже росток должно быть видно
         crop.setLocalScale(scale);
         CropModelFactory.setFruitVisible(crop, p >= 0.7f);
         float phase = crop.getLocalTranslation().x * 0.7f + crop.getLocalTranslation().z * 0.4f;

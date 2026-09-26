@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ProgramRunnerTest {
@@ -44,7 +45,7 @@ class ProgramRunnerTest {
         QueuedCommandSink sink = new QueuedCommandSink();
         RobotController robot = new RobotController(farm, sink, s -> { });
         var future = new ProgramRunner(Duration.ofSeconds(5))
-                .start((r, f) -> r.moveTo(2, 2), robot, new FarmView(farm));
+                .start((r, f) -> r.moveTo(2, 2), robot, new FarmView(farm)).result();
 
         // Имитация игрового цикла движка.
         QueuedCommandSink.PendingCommand pending;
@@ -55,5 +56,32 @@ class ProgramRunnerTest {
 
         assertTrue(future.get().isSuccess());
         assertEquals(2, farm.robotPosition().x());
+    }
+
+    @Test
+    void stopInterruptsWaitingProgramAndCancelsItsCommand() throws Exception {
+        QueuedCommandSink sink = new QueuedCommandSink();
+        RobotController robot = new RobotController(farm, sink, s -> { });
+        RunningProgram running = new ProgramRunner(Duration.ofSeconds(5))
+                .start((r, f) -> r.moveTo(1, 1), robot, new FarmView(farm));
+
+        Thread.sleep(50); // даём программе дойти до ожидания команды
+        running.stop();
+
+        assertEquals(ExecutionResult.Status.STOPPED, running.result().get().status());
+        assertNull(sink.poll(), "отменённая команда не должна попасть в движок");
+    }
+
+    @Test
+    void errorReportsPlayerLine() {
+        RobotController robot = new RobotController(farm, new DirectCommandSink(farm), s -> { });
+        FarmProgram program = (r, f) -> {
+            throw new IllegalStateException("бум");
+        };
+
+        ExecutionResult result = new ProgramRunner(Duration.ofSeconds(2)).run(program, robot, new FarmView(farm));
+
+        assertEquals(ExecutionResult.Status.ERROR, result.status());
+        assertTrue(result.line() > 0, "строка ошибки должна быть найдена в стеке");
     }
 }

@@ -65,4 +65,20 @@ class FarmTest {
         assertThrows(FarmRuleException.class, farm::waterAtRobot);
         assertFalse(farm.plotAt(GridPosition.ORIGIN).watered());
     }
+
+    @Test
+    void resetClearsEverything() {
+        farm.moveRobot(new GridPosition(1, 1));
+        farm.plantAtRobot(Crop.of(CropType.CARROT));
+        farm.waterAtRobot();
+        farm.tick(100);
+        farm.harvestAtRobot();
+
+        farm.reset();
+
+        assertEquals(GridPosition.ORIGIN, farm.robotPosition());
+        assertEquals(0, farm.robotSteps());
+        assertTrue(farm.plotAt(new GridPosition(1, 1)).isEmpty());
+        assertTrue(farm.inventorySnapshot().isEmpty());
+    }
 }

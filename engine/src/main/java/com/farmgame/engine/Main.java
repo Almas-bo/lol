@@ -11,7 +11,8 @@ import java.util.Arrays;
  * <ul>
  *   <li>{@code --quality=low|medium|high} — качество графики (по умолчанию high);</li>
  *   <li>{@code --fullscreen} — полноэкранный режим;</li>
- *   <li>{@code --width=1600 --height=900} — размер окна.</li>
+ *   <li>{@code --progress=путь} — файл прогресса (по умолчанию {@code ~/.javafarm/progress.properties});</li>
+ *   <li>{@code --width=1920 --height=1080} — размер окна (по умолчанию 1440×810).</li>
  * </ul>
  */
 public final class Main {
@@ -23,12 +24,17 @@ public final class Main {
         // HUD рисуется через Java2D в текстуру; окно AWT не нужно (важно для macOS + GLFW).
         System.setProperty("java.awt.headless", "true");
 
+        for (String arg : args) {
+            if (arg.startsWith("--progress=")) {
+                System.setProperty("farmgame.progress", arg.substring("--progress=".length()));
+            }
+        }
         GraphicsQuality quality = GraphicsQuality.fromArgs(args);
         boolean fullscreen = Arrays.asList(args).contains("--fullscreen");
 
         AppSettings settings = new AppSettings(true);
         settings.setTitle("Java Farm — учимся программировать на ферме");
-        settings.setResolution(intArg(args, "--width=", 1280), intArg(args, "--height=", 720));
+        settings.setResolution(intArg(args, "--width=", 1440), intArg(args, "--height=", 810));
         settings.setFullscreen(fullscreen);
         settings.setSamples(quality.msaaSamples());
         settings.setVSync(true);

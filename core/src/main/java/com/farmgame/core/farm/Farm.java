@@ -55,6 +55,24 @@ public class Farm {
         return p.x() >= 0 && p.y() >= 0 && p.x() < width && p.y() < height;
     }
 
+    // ------------------------------------------------------------------ сброс
+
+    /** Возвращает ферму в исходное состояние: пустые грядки, робот в (0, 0), пустой склад. */
+    public synchronized void reset() {
+        for (Plot[] column : plots) {
+            for (Plot plot : column) {
+                plot.clear();
+            }
+        }
+        inventory.clear();
+        resetRobot();
+    }
+
+    /** Ставит робота в (0, 0) и обнуляет счётчик шагов, не трогая грядки. */
+    public synchronized void resetRobot() {
+        robot.placeAt(GridPosition.ORIGIN);
+    }
+
     // ------------------------------------------------------------------ робот
 
     public synchronized GridPosition robotPosition() {

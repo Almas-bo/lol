@@ -7,9 +7,10 @@ import java.time.Duration;
  *
  * @param status  чем закончилось выполнение
  * @param message пояснение для игрока (текст ошибки) или пустая строка
+ * @param line    номер строки кода игрока, где произошла ошибка, или -1
  * @param elapsed сколько длилось выполнение
  */
-public record ExecutionResult(Status status, String message, Duration elapsed) {
+public record ExecutionResult(Status status, String message, int line, Duration elapsed) {
 
     public enum Status {
         /** Программа завершилась без ошибок. */
@@ -17,7 +18,13 @@ public record ExecutionResult(Status status, String message, Duration elapsed) {
         /** Код игрока бросил исключение. */
         ERROR,
         /** Программа превысила лимит времени и была остановлена. */
-        TIMEOUT
+        TIMEOUT,
+        /** Программу остановил игрок. */
+        STOPPED
+    }
+
+    public ExecutionResult(Status status, String message, Duration elapsed) {
+        this(status, message, -1, elapsed);
     }
 
     public boolean isSuccess() {

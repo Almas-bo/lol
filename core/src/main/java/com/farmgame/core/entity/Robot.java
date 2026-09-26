@@ -24,6 +24,12 @@ public class Robot extends Entity {
         setPosition(target);
     }
 
+    /** Ставит робота в клетку без учёта пройденного пути и обнуляет счётчик шагов (новый запуск). */
+    public void placeAt(GridPosition start) {
+        setPosition(start);
+        stepsTaken = 0;
+    }
+
     /** Общее число пройденных клеток — пригодится для статистики и заданий. */
     public int stepsTaken() {
         return stepsTaken;

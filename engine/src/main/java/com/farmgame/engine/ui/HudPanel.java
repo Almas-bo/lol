@@ -1,6 +1,7 @@
 package com.farmgame.engine.ui;
 
 import com.jme3.asset.AssetManager;
+import com.jme3.scene.Spatial;
 import com.jme3.texture.Image;
 import com.jme3.texture.Texture;
 import com.jme3.texture.Texture2D;
@@ -12,6 +13,7 @@ import java.awt.AlphaComposite;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferInt;
 import java.nio.ByteBuffer;
 import java.util.function.Consumer;
 
@@ -45,6 +47,39 @@ public final class HudPanel {
         picture.setTexture(assetManager, texture, true);
         picture.setWidth(width);
         picture.setHeight(height);
+    }
+
+    /** Перерисовать при следующем {@link #redraw}, даже если ключ содержимого не изменился. */
+    public void invalidate() {
+        lastKey = null;
+    }
+
+    /**
+     * Попадает ли точка экрана (в пикселях, от левого нижнего угла) на панель.
+     * Возвращает координаты внутри панели от ЛЕВОГО ВЕРХНЕГО угла или {@code null}.
+     */
+    public int[] toLocal(float screenX, float screenY) {
+        if (!isVisible()) {
+            return null;
+        }
+        float px = picture.getWorldTranslation().x;
+        float py = picture.getWorldTranslation().y;
+        int lx = (int) (screenX - px);
+        int ly = (int) (height - (screenY - py));
+        return lx >= 0 && ly >= 0 && lx < width && ly < height ? new int[]{lx, ly} : null;
+    }
+
+    /** Панель видна: она прикреплена к сцене и ни она, ни её родители не скрыты. */
+    public boolean isVisible() {
+        if (picture.getParent() == null) {
+            return false;
+        }
+        for (Spatial s = picture; s != null; s = s.getParent()) {
+            if (s.getCullHint() == Spatial.CullHint.Always) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /** Узел для {@code guiNode}. Позиция задаётся в пикселях от левого нижнего угла экрана. */
@@ -88,10 +123,12 @@ public final class HudPanel {
 
     /** Копирует ARGB-пиксели Java2D в RGBA-буфер jME (с переворотом по вертикали). */
     private void upload() {
+        int[] argbPixels = ((DataBufferInt) canvas.getRaster().getDataBuffer()).getData();
         pixels.clear();
         for (int y = height - 1; y >= 0; y--) {
+            int row = y * width;
             for (int x = 0; x < width; x++) {
-                int argb = canvas.getRGB(x, y);
+                int argb = argbPixels[row + x];
                 pixels.put((byte) (argb >> 16)).put((byte) (argb >> 8)).put((byte) argb).put((byte) (argb >>> 24));
             }
         }

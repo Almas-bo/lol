@@ -28,6 +28,10 @@ public final class GameConsole {
         }
     }
 
+    public synchronized void clear() {
+        lines.clear();
+    }
+
     public synchronized List<String> lines() {
         return List.copyOf(lines);
     }
