@@ -1,0 +1,50 @@
+# ---- Gradle ----
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/**/build/
+out/
+
+# ---- Java ----
+*.class
+*.log
+hs_err_pid*
+replay_pid*
+*.ctxt
+.mtj.tmp/
+
+# ---- IntelliJ IDEA ----
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# ---- Eclipse / VS Code ----
+.classpath
+.project
+.settings/
+bin/
+.vscode/
+
+# ---- NetBeans / jMonkeyEngine SDK ----
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+private/
+
+# ---- jMonkeyEngine runtime artifacts ----
+# Asset cache, screenshots and native libraries extracted at runtime.
+*.j3o.bak
+assets/Interface/Screenshots/
+screenshots/
+natives/
+*.so
+*.dll
+*.dylib
+*.jnilib
+
+# ---- OS ----
+.DS_Store
+Thumbs.db
